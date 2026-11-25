@@ -45,7 +45,7 @@
             android:layout_height="wrap_content"
             android:text="+ 添加"
             android:textSize="11sp"
-            android:layout_marginStart="auto"
+            android:layout_marginStart="8dp"
             android:minWidth="0dp"
             android:minHeight="0dp"
             android:padding="4dp"/>
