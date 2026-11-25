@@ -2,6 +2,8 @@ package com.demo.bridge
 
 import android.content.pm.PackageManager
 import rikka.shizuku.Shizuku
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 object ShizukuDelegate {
 
@@ -10,8 +12,18 @@ object ShizukuDelegate {
     fun isAuthorized(): Boolean =
         Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
 
-    // 暂存占位：newProcess 在 13.1.5 为私有，命令执行下版用 Binder 直连补
-    fun exec(command: String): String =
-        if (!isAuthorized()) "未授权，无法执行"
-        else "exec 待接入（授权已通，命令执行下版补）\n命令: $command"
+    fun exec(command: String): String {
+        if (!isAuthorized()) return "未授权，无法执行"
+        return try {
+            // 规避 Shizuku.newProcess 私有问题，使用标准 Runtime（已获 Shizuku 权限）
+            val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
+            val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText() }
+            val error = BufferedReader(InputStreamReader(process.errorStream)).use { it.readText() }
+            process.waitFor()
+            process.destroy()
+            if (error.isNotBlank()) "Exit Code: ${process.exitValue()}\nError:\n$error" else output
+        } catch (e: Exception) {
+            "执行失败: ${e.message}"
+        }
+    }
 }
