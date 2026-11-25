@@ -2,7 +2,6 @@ package com.demo.bridge
 
 import android.content.pm.PackageManager
 import rikka.shizuku.Shizuku
-import rikka.shizuku.ShizukuRemoteProcess
 
 object ShizukuDelegate {
 
@@ -11,16 +10,6 @@ object ShizukuDelegate {
     fun isAuthorized(): Boolean =
         Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
 
-    fun exec(command: String): String {
-        return try {
-            val process: ShizukuRemoteProcess =
-                Shizuku.newProcess(arrayOf("sh", "-c", command), null, null)
-            process.outputStream.close()
-            val result = process.inputStream.bufferedReader().readText()
-            val exitCode = process.waitFor()
-            "Exit: $exitCode\n$result"
-        } catch (e: Exception) {
-            "执行失败: ${e.message}"
-        }
-    }
+    // 暂存占位，等授权跑通后下个版本再适配命令执行
+    fun exec(command: String): String = "exec 待接入（当前仅检测授权）"
 }
