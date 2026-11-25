@@ -23,9 +23,11 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == shizukuPermissionRequestCode) {
             if (grantResult == PackageManager.PERMISSION_GRANTED) {
                 statusText.text = "Shizuku 已授权 ✅"
+                execBtn.isEnabled = true
                 Toast.makeText(this, "授权成功", Toast.LENGTH_SHORT).show()
             } else {
                 statusText.text = "Shizuku 授权被拒绝"
+                execBtn.isEnabled = false
                 Toast.makeText(this, "授权被拒", Toast.LENGTH_SHORT).show()
             }
         }
@@ -45,7 +47,7 @@ class MainActivity : AppCompatActivity() {
 
         testBtn.setOnClickListener {
             updateStatus()
-            if (Shizuku.isAuthorized()) {
+            if (ShizukuDelegate.isAuthorized()) {
                 Toast.makeText(this, "已授权", Toast.LENGTH_SHORT).show()
             } else if (Shizuku.pingBinder()) {
                 Shizuku.requestPermission(shizukuPermissionRequestCode)
@@ -55,16 +57,18 @@ class MainActivity : AppCompatActivity() {
         }
 
         execBtn.setOnClickListener {
-            if (!Shizuku.isAuthorized()) {
+            if (!ShizukuDelegate.isAuthorized()) {
                 resultText.text = "请先授权 Shizuku"
                 Toast.makeText(this, "未授权", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             val cmd = cmdInput.text.toString().trim()
-            if (cmd.isEmpty()) return@setOnClickListener
+            if (cmd.isEmpty()) {
+                Toast.makeText(this, "请输入命令", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             
             resultText.text = "执行中..."
-            // 简单线程执行避免卡顿
             Thread {
                 val res = ShizukuDelegate.exec(cmd)
                 runOnUiThread { resultText.text = res }
@@ -73,8 +77,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateStatus() {
-        statusText.text = if (Shizuku.isAuthorized()) "Shizuku 已授权 ✅" else "Shizuku 未授权/未连接"
-        execBtn.isEnabled = Shizuku.isAuthorized()
+        val ok = ShizukuDelegate.isAuthorized()
+        statusText.text = if (ok) "Shizuku 已授权 ✅" else "Shizuku 未授权/未连接"
+        execBtn.isEnabled = ok
     }
 
     override fun onStart() {
