@@ -32,23 +32,26 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:layout_marginBottom="4dp">
+
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="常用命令（点击执行 / 长按删除）"
             android:textStyle="bold"
             android:textSize="13sp"/>
+
         <Button
             android:id="@+id/add_cmd_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="+ 添加"
             android:textSize="11sp"
-            android:layout_marginStart="8dp"
             android:minWidth="0dp"
             android:minHeight="0dp"
-            android:padding="4dp"/>
+            android:padding="6dp"/>
     </LinearLayout>
 
     <ListView
@@ -70,11 +73,13 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginBottom="8dp">
+
         <Button
             android:id="@+id/exec_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="执行"/>
+
         <Button
             android:id="@+id/clear_btn"
             android:layout_width="wrap_content"
@@ -90,6 +95,7 @@
         android:background="#11000000"
         android:padding="6dp"
         android:layout_marginBottom="8dp">
+
         <TextView
             android:id="@+id/result_text"
             android:layout_width="match_parent"
@@ -104,18 +110,29 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
+
         <Button
             android:id="@+id/copy_btn"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="📋 复制结果"/>
+            android:text="📋 复制"/>
+
         <Button
             android:id="@+id/save_btn"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="💾 保存为文件"
-            android:layout_marginStart="8dp"/>
+            android:text="💾 保存"
+            android:layout_marginStart="6dp"/>
+
+        <Button
+            android:id="@+id/share_btn"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="📤 分享"
+            android:layout_marginStart="6dp"/>
     </LinearLayout>
+
 </LinearLayout>
