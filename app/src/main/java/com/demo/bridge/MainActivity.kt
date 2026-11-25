@@ -1,14 +1,31 @@
 package com.demo.bridge
 
-import androidx.appcompat.app.AppCompatActivity
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import rikka.shizuku.Shizuku
 
 class MainActivity : AppCompatActivity() {
+
     private lateinit var statusText: TextView
     private lateinit var testBtn: Button
+
+    private val shizukuPermissionRequestCode = 10086
+
+    private val permissionListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
+        if (requestCode == shizukuPermissionRequestCode) {
+            if (grantResult == PackageManager.PERMISSION_GRANTED) {
+                statusText.text = "Shizuku 已授权 ✅"
+                Toast.makeText(this, "授权成功", Toast.LENGTH_SHORT).show()
+            } else {
+                statusText.text = "Shizuku 授权被拒绝"
+                Toast.makeText(this, "授权被拒", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -17,29 +34,35 @@ class MainActivity : AppCompatActivity() {
         statusText = findViewById(R.id.status_text)
         testBtn = findViewById(R.id.test_btn)
 
-        updateStatus("等待检测 Shizuku 授权...")
+        // 检测 Shizuku 是否可用
+        if (Shizuku.pingBinder()) {
+            statusText.text = "Shizuku 已连接，点击按钮申请授权"
+        } else {
+            statusText.text = "Shizuku 未运行，请先启动 Shizuku"
+        }
 
         testBtn.setOnClickListener {
-            // 第一版：基础检测，后续接入 ShizukuDelegate
-            val isShizukuAvailable = checkShizuku()
-            if (isShizukuAvailable) {
-                updateStatus("Shizuku 已授权，准备执行测试命令")
-                Toast.makeText(this, "授权成功", Toast.LENGTH_SHORT).show()
+            if (!Shizuku.pingBinder()) {
+                Toast.makeText(this, "Shizuku 未运行", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
+                statusText.text = "Shizuku 已有授权 ✅"
+                Toast.makeText(this, "已授权", Toast.LENGTH_SHORT).show()
             } else {
-                updateStatus("未检测到 Shizuku 授权，请先启动 Shizuku/Shevery")
-                Toast.makeText(this, "无授权", Toast.LENGTH_SHORT).show()
+                Shizuku.requestPermission(shizukuPermissionRequestCode)
             }
         }
     }
 
-    private fun checkShizuku(): Boolean {
-        // 占位检测：后续替换为 ShizukuDelegate 真实逻辑
-        return try {
-            Runtime.getRuntime().exec("sh -c 'echo test'").waitFor() == 0
-        } catch (e: Exception) { false }
+    override fun onStart() {
+        super.onStart()
+        Shizuku.addRequestPermissionResultListener(permissionListener)
     }
 
-    private fun updateStatus(msg: String) {
-        statusText.text = msg
+    override fun onStop() {
+        super.onStop()
+        Shizuku.removeRequestPermissionResultListener(permissionListener)
     }
 }
