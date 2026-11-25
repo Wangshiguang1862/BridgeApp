@@ -1,0 +1,9 @@
+==== Bridge启动：Wed Nov 25 15:10:18 CST 2026 ====
+17
+ls: cannot open directory '/system/bin': Permission denied
+==== Bridge执行完毕 ====
+==== Bridge启动：Wed Nov 25 15:12:09 CST 2026 ====
+系统版本：17
+设备型号：PNM-AN10
+CPU架构：arm64-v8a
+==== Bridge执行完毕 ====
