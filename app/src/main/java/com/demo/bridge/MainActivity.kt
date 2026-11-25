@@ -1,15 +1,15 @@
 package com.demo.bridge
 
+import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.Environment
-import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
-import android.widget.LinearLayout
+import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -28,26 +28,27 @@ class MainActivity : AppCompatActivity() {
     private lateinit var clearBtn: Button
     private lateinit var copyBtn: Button
     private lateinit var saveBtn: Button
+    private lateinit var addCmdBtn: Button
     private lateinit var cmdInput: EditText
     private lateinit var resultText: TextView
-    private lateinit var quickBox: LinearLayout
+    private lateinit var quickList: ListView
 
     private val shizukuPermissionRequestCode = 10086
+    private val prefsName = "bridge_prefs"
+    private val keyCmds = "quick_cmds"
 
-    // 快捷命令
-    private val quickCmds = listOf(
-        "系统版本" to "getprop ro.build.version.release",
-        "机型信息" to "getprop ro.product.model",
-        "当前身份" to "whoami",
-        "是谁在跑" to "id",
-        "已装应用数" to "pm list packages | wc -l",
-        "三方应用列表" to "pm list packages -3",
-        "内存概况" to "cat /proc/meminfo | head -5",
-        "CPU 信息" to "cat /proc/cpuinfo | head -8",
-        "电池状态" to "dumpsys battery | head -10"
+    private val defaultCmds = listOf(
+        "系统版本|getprop ro.build.version.release",
+        "机型信息|getprop ro.product.model",
+        "当前身份|whoami",
+        "是谁在跑|id",
+        "已装应用数|pm list packages | wc -l",
+        "三方应用列表|pm list packages -3",
+        "内存概况|cat /proc/meminfo | head -5",
+        "CPU 信息|cat /proc/cpuinfo | head -8",
+        "电池状态|dumpsys battery | head -10"
     )
 
-    // 一键扫描命令组
     private val scanCmds = linkedMapOf(
         "系统版本" to "getprop ro.build.version.release",
         "机型" to "getprop ro.product.model",
@@ -59,6 +60,9 @@ class MainActivity : AppCompatActivity() {
         "内存" to "cat /proc/meminfo | head -3",
         "电池" to "dumpsys battery | grep level"
     )
+
+    private var quickCmds = mutableListOf<String>()
+    private lateinit var adapter: ArrayAdapter<String>
 
     private val permissionListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
         if (grantResult == PackageManager.PERMISSION_GRANTED) {
@@ -82,14 +86,16 @@ class MainActivity : AppCompatActivity() {
         clearBtn = findViewById(R.id.clear_btn)
         copyBtn = findViewById(R.id.copy_btn)
         saveBtn = findViewById(R.id.save_btn)
+        addCmdBtn = findViewById(R.id.add_cmd_btn)
         cmdInput = findViewById(R.id.cmd_input)
         resultText = findViewById(R.id.result_text)
-        quickBox = findViewById(R.id.quick_cmd_box)
+        quickList = findViewById(R.id.quick_list)
 
-        buildQuickButtons()
+        loadCmds()
+        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, quickCmds)
+        quickList.adapter = adapter
         updateStatus()
 
-        // 授权检测
         testBtn.setOnClickListener {
             when {
                 ShizukuDelegate.isAuthorized() ->
@@ -102,94 +108,121 @@ class MainActivity : AppCompatActivity() {
             updateStatus()
         }
 
-        // 执行命令
+        quickList.setOnItemClickListener { _, _, pos, _ ->
+            val item = quickCmds[pos]
+            val cmd = item.substringAfter("|", item)
+            cmdInput.setText(cmd)
+            runCmd(cmd)
+        }
+
+        quickList.setOnItemLongClickListener { _, _, pos, _ ->
+            AlertDialog.Builder(this)
+                .setTitle("删除命令？")
+                .setMessage(quickCmds[pos].substringBefore("|"))
+                .setPositiveButton("删除") { _, _ ->
+                    quickCmds.removeAt(pos)
+                    saveCmds()
+                    adapter.notifyDataSetChanged()
+                    Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("取消", null)
+                .show()
+            true
+        }
+
+        addCmdBtn.setOnClickListener { showAddDialog() }
+
         execBtn.setOnClickListener {
             val cmd = cmdInput.text.toString().trim()
             if (cmd.isEmpty()) { Toast.makeText(this, "请输入命令", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
             runCmd(cmd)
         }
 
-        // 清空
         clearBtn.setOnClickListener { resultText.text = "" }
 
-        // 复制结果
         copyBtn.setOnClickListener {
             val text = resultText.text.toString()
             if (text.isEmpty() || text == "结果将显示在这里...") {
-                Toast.makeText(this, "没有可复制的内容", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+                Toast.makeText(this, "没有可复制的内容", Toast.LENGTH_SHORT).show(); return@setOnClickListener
             }
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             cm.setPrimaryClip(ClipData.newPlainText("BridgeApp结果", text))
             Toast.makeText(this, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
         }
 
-        // 保存为文件
         saveBtn.setOnClickListener {
             val text = resultText.text.toString()
             if (text.isEmpty() || text == "结果将显示在这里...") {
-                Toast.makeText(this, "没有可保存的内容", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+                Toast.makeText(this, "没有可保存的内容", Toast.LENGTH_SHORT).show(); return@setOnClickListener
             }
             try {
                 val dir = File(filesDir, "scans")
                 if (!dir.exists()) dir.mkdirs()
-                val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-                val file = File(dir, "bridge_scan_$timeStamp.txt")
-                file.writeText("==== BridgeApp 扫描报告 ====\n时间: $timeStamp\n\n$text")
+                val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+                val file = File(dir, "bridge_scan_$ts.txt")
+                file.writeText("==== BridgeApp 扫描报告 ====\n时间: $ts\n\n$text")
                 Toast.makeText(this, "已保存: ${file.absolutePath}", Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
                 Toast.makeText(this, "保存失败: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
 
-        // 一键扫描
         scanBtn.setOnClickListener {
             if (!ShizukuDelegate.isAuthorized()) {
-                Toast.makeText(this, "请先授权 Shizuku", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+                Toast.makeText(this, "请先授权 Shizuku", Toast.LENGTH_SHORT).show(); return@setOnClickListener
             }
             runScan()
         }
     }
 
-    private fun buildQuickButtons() {
-        quickBox.removeAllViews()
-        val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        lp.bottomMargin = 6
-        for ((label, cmd) in quickCmds) {
-            val b = Button(this).apply {
-                text = label
-                textSize = 12f
-                isAllCaps = false
-                layoutParams = lp
-                setOnClickListener {
-                    cmdInput.setText(cmd)
-                    runCmd(cmd)
+    private fun showAddDialog() {
+        val view = layoutInflater.inflate(android.R.layout.select_dialog_item, null)
+        val input = EditText(this)
+        input.hint = "显示名|shell命令\n例如：根目录|ls -la /"
+        AlertDialog.Builder(this)
+            .setTitle("添加常用命令")
+            .setView(input)
+            .setPositiveButton("添加") { _, _ ->
+                val line = input.text.toString().trim()
+                if (!line.contains("|")) {
+                    Toast.makeText(this, "格式错误，需含 |", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
                 }
+                quickCmds.add(line)
+                saveCmds()
+                adapter.notifyDataSetChanged()
+                Toast.makeText(this, "已添加", Toast.LENGTH_SHORT).show()
             }
-            quickBox.addView(b)
-        }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun loadCmds() {
+        val prefs = getSharedPreferences(prefsName, MODE_PRIVATE)
+        val set = prefs.getStringSet(keyCmds, null)
+        quickCmds = if (set != null && set.isNotEmpty()) set.sorted().toMutableList() else defaultCmds.toMutableList()
+    }
+
+    private fun saveCmds() {
+        getSharedPreferences(prefsName, MODE_PRIVATE).edit()
+            .putStringSet(keyCmds, quickCmds.toSet()).apply()
     }
 
     private fun runCmd(cmd: String) {
         resultText.text = "▶ $cmd\n\n执行中..."
-        execBtn.isEnabled = false
-        scanBtn.isEnabled = false
+        execBtn.isEnabled = false; scanBtn.isEnabled = false
         Thread {
             val res = ShizukuDelegate.exec(cmd)
             runOnUiThread {
                 resultText.text = "▶ $cmd\n\n${res.ifEmpty { "(无输出)" }}"
-                execBtn.isEnabled = true
-                scanBtn.isEnabled = true
+                execBtn.isEnabled = true; scanBtn.isEnabled = true
             }
         }.start()
     }
 
     private fun runScan() {
         resultText.text = "📋 正在扫描设备信息...\n"
-        scanBtn.isEnabled = false
-        execBtn.isEnabled = false
+        scanBtn.isEnabled = false; execBtn.isEnabled = false
         Thread {
             val sb = StringBuilder()
             sb.appendLine("==== BridgeApp 设备扫描报告 ====")
@@ -204,8 +237,7 @@ class MainActivity : AppCompatActivity() {
             sb.appendLine("==== 扫描完毕 ====")
             runOnUiThread {
                 resultText.text = sb.toString()
-                scanBtn.isEnabled = true
-                execBtn.isEnabled = true
+                scanBtn.isEnabled = true; execBtn.isEnabled = true
                 Toast.makeText(this, "扫描完成，可点击保存", Toast.LENGTH_SHORT).show()
             }
         }.start()
@@ -216,7 +248,8 @@ class MainActivity : AppCompatActivity() {
         statusText.text = if (ok) "Shizuku 已授权 ✅" else "Shizuku 未授权/未连接"
         execBtn.isEnabled = ok
         scanBtn.isEnabled = ok
-        for (i in 0 until quickBox.childCount) quickBox.getChildAt(i).isEnabled = ok
+        quickList.isEnabled = ok
+        addCmdBtn.isEnabled = ok
     }
 
     override fun onStart() {
