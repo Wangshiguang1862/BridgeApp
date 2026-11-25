@@ -8,4 +8,4 @@
 
 ## 用法
 Termux 中执行：./bridge.sh，日志输出在 ~/bridge_log.txt
-# bridge-scan
+# BridgeApp
