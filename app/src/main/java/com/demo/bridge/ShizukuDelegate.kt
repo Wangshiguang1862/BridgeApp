@@ -1,7 +1,21 @@
 package com.demo.bridge
 
-// 第一版占位：后续集成 TinyK 的 ShizukuControl 逻辑
+import rikka.shizuku.Shizuku
+
 object ShizukuDelegate {
-    fun isAuthorized(): Boolean = false
-    fun exec(command: String): String = "未实现"
+
+    fun isAvailable(): Boolean = Shizuku.pingBinder()
+
+    fun isAuthorized(): Boolean =
+        Shizuku.pingBinder() && Shizuku.checkSelfPermission() == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    fun exec(command: String): String {
+        return try {
+            val process = Shizuku.newProcess(arrayOf("sh", "-c", command), null, null)
+            val exitCode = process.waitFor()
+            "Exit: $exitCode"
+        } catch (e: Exception) {
+            "执行失败: ${e.message}"
+        }
+    }
 }
