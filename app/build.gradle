@@ -1,0 +1,24 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+android {
+    namespace 'com.demo.bridge'
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.demo.bridge"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release { minifyEnabled false }
+    }
+}
+dependencies {
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    // Shizuku 核心库（后续完善授权时启用，第一版先留着基础检测）
+    // implementation 'dev.rikka.shizuku:api:13.1.5'
+}
