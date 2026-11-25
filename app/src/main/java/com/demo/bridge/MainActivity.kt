@@ -12,7 +12,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var statusText: TextView
     private lateinit var testBtn: Button
-
     private val shizukuPermissionRequestCode = 10086
 
     private val permissionListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
@@ -34,7 +33,6 @@ class MainActivity : AppCompatActivity() {
         statusText = findViewById(R.id.status_text)
         testBtn = findViewById(R.id.test_btn)
 
-        // 检测 Shizuku 是否可用
         if (Shizuku.pingBinder()) {
             statusText.text = "Shizuku 已连接，点击按钮申请授权"
         } else {
