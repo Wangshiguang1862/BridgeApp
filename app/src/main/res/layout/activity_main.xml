@@ -18,32 +18,75 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="检测 SHIZUKU 授权"
-        android:layout_marginBottom="24dp"/>
+        android:layout_marginBottom="20dp"/>
+
+    <!-- 常用命令快捷区 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="常用命令（点击直接执行）"
+        android:textStyle="bold"
+        android:textSize="14sp"
+        android:layout_marginBottom="8dp"/>
+
+    <LinearLayout
+        android:id="@+id/quick_cmd_box"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="20dp"/>
+
+    <!-- 自定义命令区 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="自定义命令"
+        android:textStyle="bold"
+        android:textSize="14sp"
+        android:layout_marginBottom="8dp"/>
 
     <EditText
         android:id="@+id/cmd_input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="输入 shell 命令 (如 getprop)"
+        android:hint="输入 shell 命令"
         android:text="getprop ro.build.version.release"
+        android:textSize="14sp"
         android:layout_marginBottom="12dp"/>
 
-    <Button
-        android:id="@+id/exec_btn"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="执行命令"
-        android:layout_marginBottom="12dp"/>
+        android:orientation="horizontal"
+        android:layout_marginBottom="12dp">
+
+        <Button
+            android:id="@+id/exec_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="执行命令"/>
+
+        <Button
+            android:id="@+id/clear_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="清空结果"
+            android:layout_marginStart="12dp"/>
+    </LinearLayout>
 
     <ScrollView
+        android:id="@+id/result_scroll"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="#11000000"
+        android:padding="8dp">
         <TextView
             android:id="@+id/result_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="结果将显示在这里..."
-            android:textSize="14sp"
+            android:textSize="13sp"
+            android:typeface="monospace"
             android:textIsSelectable="true"/>
     </ScrollView>
 </LinearLayout>
