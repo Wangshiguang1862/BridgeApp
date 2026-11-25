@@ -4,8 +4,10 @@ import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Build
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -13,6 +15,7 @@ import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import rikka.shizuku.Shizuku
 import java.io.File
 import java.text.SimpleDateFormat
@@ -28,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var clearBtn: Button
     private lateinit var copyBtn: Button
     private lateinit var saveBtn: Button
+    private lateinit var shareBtn: Button
     private lateinit var addCmdBtn: Button
     private lateinit var cmdInput: EditText
     private lateinit var resultText: TextView
@@ -86,6 +90,7 @@ class MainActivity : AppCompatActivity() {
         clearBtn = findViewById(R.id.clear_btn)
         copyBtn = findViewById(R.id.copy_btn)
         saveBtn = findViewById(R.id.save_btn)
+        shareBtn = findViewById(R.id.share_btn)
         addCmdBtn = findViewById(R.id.add_cmd_btn)
         cmdInput = findViewById(R.id.cmd_input)
         resultText = findViewById(R.id.result_text)
@@ -134,7 +139,10 @@ class MainActivity : AppCompatActivity() {
 
         execBtn.setOnClickListener {
             val cmd = cmdInput.text.toString().trim()
-            if (cmd.isEmpty()) { Toast.makeText(this, "请输入命令", Toast.LENGTH_SHORT).show(); return@setOnClickListener }
+            if (cmd.isEmpty()) {
+                Toast.makeText(this, "请输入命令", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             runCmd(cmd)
         }
 
@@ -142,8 +150,9 @@ class MainActivity : AppCompatActivity() {
 
         copyBtn.setOnClickListener {
             val text = resultText.text.toString()
-            if (text.isEmpty() || text == "结果将显示在这里...") {
-                Toast.makeText(this, "没有可复制的内容", Toast.LENGTH_SHORT).show(); return@setOnClickListener
+            if (!hasResult()) {
+                Toast.makeText(this, "没有可复制的内容", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             cm.setPrimaryClip(ClipData.newPlainText("BridgeApp结果", text))
@@ -152,31 +161,77 @@ class MainActivity : AppCompatActivity() {
 
         saveBtn.setOnClickListener {
             val text = resultText.text.toString()
-            if (text.isEmpty() || text == "结果将显示在这里...") {
-                Toast.makeText(this, "没有可保存的内容", Toast.LENGTH_SHORT).show(); return@setOnClickListener
+            if (!hasResult()) {
+                Toast.makeText(this, "没有可保存的内容", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            writeReport(text)?.let { file ->
+                Toast.makeText(this, "已保存:\n${file.absolutePath}", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        shareBtn.setOnClickListener {
+            val text = resultText.text.toString()
+            if (!hasResult()) {
+                Toast.makeText(this, "没有可分享的内容", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val file = writeReport(text)
+            if (file == null) {
+                Toast.makeText(this, "生成文件失败", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
             try {
-                val dir = File(filesDir, "scans")
-                if (!dir.exists()) dir.mkdirs()
-                val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-                val file = File(dir, "bridge_scan_$ts.txt")
-                file.writeText("==== BridgeApp 扫描报告 ====\n时间: $ts\n\n$text")
-                Toast.makeText(this, "已保存: ${file.absolutePath}", Toast.LENGTH_LONG).show()
+                val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra(Intent.EXTRA_SUBJECT, "BridgeApp 报告")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(Intent.createChooser(intent, "分享报告"))
             } catch (e: Exception) {
-                Toast.makeText(this, "保存失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "分享失败: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
 
         scanBtn.setOnClickListener {
             if (!ShizukuDelegate.isAuthorized()) {
-                Toast.makeText(this, "请先授权 Shizuku", Toast.LENGTH_SHORT).show(); return@setOnClickListener
+                Toast.makeText(this, "请先授权 Shizuku", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
             runScan()
         }
     }
 
+    private fun hasResult(): Boolean {
+        val t = resultText.text.toString()
+        return t.isNotEmpty() && t != "结果将显示在这里..."
+    }
+
+    private fun buildReport(body: String): String {
+        val ts = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        return "==== BridgeApp 报告 ====\n" +
+                "设备: ${Build.MANUFACTURER} ${Build.MODEL}\n" +
+                "系统: Android ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})\n" +
+                "时间: $ts\n\n$body\n"
+    }
+
+    private fun writeReport(body: String): File? {
+        return try {
+            val outDir = File(getExternalFilesDir(null), "scans")
+            if (!outDir.exists()) outDir.mkdirs()
+            val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val file = File(outDir, "bridge_$ts.txt")
+            file.writeText(buildReport(body))
+            file
+        } catch (e: Exception) {
+            Toast.makeText(this, "写入失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            null
+        }
+    }
+
     private fun showAddDialog() {
-        val view = layoutInflater.inflate(android.R.layout.select_dialog_item, null)
         val input = EditText(this)
         input.hint = "显示名|shell命令\n例如：根目录|ls -la /"
         AlertDialog.Builder(this)
@@ -200,7 +255,7 @@ class MainActivity : AppCompatActivity() {
     private fun loadCmds() {
         val prefs = getSharedPreferences(prefsName, MODE_PRIVATE)
         val set = prefs.getStringSet(keyCmds, null)
-        quickCmds = if (set != null && set.isNotEmpty()) set.sorted().toMutableList() else defaultCmds.toMutableList()
+        quickCmds = if (!set.isNullOrEmpty()) set.sorted().toMutableList() else defaultCmds.toMutableList()
     }
 
     private fun saveCmds() {
@@ -210,19 +265,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun runCmd(cmd: String) {
         resultText.text = "▶ $cmd\n\n执行中..."
-        execBtn.isEnabled = false; scanBtn.isEnabled = false
+        execBtn.isEnabled = false
+        scanBtn.isEnabled = false
         Thread {
             val res = ShizukuDelegate.exec(cmd)
             runOnUiThread {
                 resultText.text = "▶ $cmd\n\n${res.ifEmpty { "(无输出)" }}"
-                execBtn.isEnabled = true; scanBtn.isEnabled = true
+                execBtn.isEnabled = true
+                scanBtn.isEnabled = true
             }
         }.start()
     }
 
     private fun runScan() {
         resultText.text = "📋 正在扫描设备信息...\n"
-        scanBtn.isEnabled = false; execBtn.isEnabled = false
+        scanBtn.isEnabled = false
+        execBtn.isEnabled = false
         Thread {
             val sb = StringBuilder()
             sb.appendLine("==== BridgeApp 设备扫描报告 ====")
@@ -237,7 +295,8 @@ class MainActivity : AppCompatActivity() {
             sb.appendLine("==== 扫描完毕 ====")
             runOnUiThread {
                 resultText.text = sb.toString()
-                scanBtn.isEnabled = true; execBtn.isEnabled = true
+                scanBtn.isEnabled = true
+                execBtn.isEnabled = true
                 Toast.makeText(this, "扫描完成，可点击保存", Toast.LENGTH_SHORT).show()
             }
         }.start()
