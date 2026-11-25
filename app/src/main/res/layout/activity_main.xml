@@ -3,8 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:gravity="center">
+    android:padding="16dp">
 
     <TextView
         android:id="@+id/status_text"
@@ -12,11 +11,39 @@
         android:layout_height="wrap_content"
         android:text="BridgeApp 初始化"
         android:textSize="18sp"
-        android:layout_marginBottom="24dp"/>
+        android:layout_marginBottom="12dp"/>
 
     <Button
         android:id="@+id/test_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="检测 Shizuku 授权"/>
+        android:text="检测 SHIZUKU 授权"
+        android:layout_marginBottom="24dp"/>
+
+    <EditText
+        android:id="@+id/cmd_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="输入 shell 命令 (如 getprop)"
+        android:text="getprop ro.build.version.release"
+        android:layout_marginBottom="12dp"/>
+
+    <Button
+        android:id="@+id/exec_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="执行命令"
+        android:layout_marginBottom="12dp"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <TextView
+            android:id="@+id/result_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="结果将显示在这里..."
+            android:textSize="14sp"
+            android:textIsSelectable="true"/>
+    </ScrollView>
 </LinearLayout>
