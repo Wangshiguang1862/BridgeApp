@@ -5,7 +5,6 @@
     android:orientation="vertical"
     android:padding="12dp">
 
-    <!-- 顶部状态 -->
     <TextView
         android:id="@+id/status_text"
         android:layout_width="wrap_content"
@@ -21,7 +20,6 @@
         android:text="检测 SHIZUKU 授权"
         android:layout_marginBottom="12dp"/>
 
-    <!-- 一键扫描按钮 -->
     <Button
         android:id="@+id/scan_btn"
         android:layout_width="match_parent"
@@ -30,27 +28,35 @@
         android:textStyle="bold"
         android:layout_marginBottom="12dp"/>
 
-    <!-- 快捷命令（限高滚动） -->
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="常用命令（点击直接执行）"
-        android:textStyle="bold"
-        android:textSize="13sp"
-        android:layout_marginBottom="4dp"/>
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="常用命令（点击执行 / 长按删除）"
+            android:textStyle="bold"
+            android:textSize="13sp"/>
+        <Button
+            android:id="@+id/add_cmd_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="+ 添加"
+            android:textSize="11sp"
+            android:layout_marginStart="auto"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:padding="4dp"/>
+    </LinearLayout>
 
-    <ScrollView
+    <ListView
+        android:id="@+id/quick_list"
         android:layout_width="match_parent"
         android:layout_height="140dp"
-        android:layout_marginBottom="8dp">
-        <LinearLayout
-            android:id="@+id/quick_cmd_box"
-            android:orientation="vertical"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-    </ScrollView>
+        android:layout_marginBottom="8dp"/>
 
-    <!-- 自定义命令 -->
     <EditText
         android:id="@+id/cmd_input"
         android:layout_width="match_parent"
@@ -64,13 +70,11 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_marginBottom="8dp">
-
         <Button
             android:id="@+id/exec_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="执行"/>
-
         <Button
             android:id="@+id/clear_btn"
             android:layout_width="wrap_content"
@@ -79,7 +83,6 @@
             android:layout_marginStart="8dp"/>
     </LinearLayout>
 
-    <!-- 结果区 -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -97,19 +100,16 @@
             android:textIsSelectable="true"/>
     </ScrollView>
 
-    <!-- 导出操作 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
-
         <Button
             android:id="@+id/copy_btn"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="📋 复制结果"/>
-
         <Button
             android:id="@+id/save_btn"
             android:layout_width="0dp"
@@ -118,5 +118,4 @@
             android:text="💾 保存为文件"
             android:layout_marginStart="8dp"/>
     </LinearLayout>
-
 </LinearLayout>
