@@ -105,19 +105,22 @@ class MainActivity : AppCompatActivity() {
             quickList.adapter = adapter
 
             testBtn.setOnClickListener {
-                try {
-                    when {
-                        ShizukuDelegate.isAuthorized() ->
+                Thread {
+                    val ok = ShizukuDelegate.isAuthorized()
+                    runOnUiThread {
+                        if (ok) {
+                            statusText.text = "Shizuku 已授权 ✅"
                             Toast.makeText(this, "已授权 ✅", Toast.LENGTH_SHORT).show()
-                        Shizuku.pingBinder() ->
-                            Shizuku.requestPermission(shizukuPermissionRequestCode)
-                        else ->
-                            Toast.makeText(this, "Shizuku 未运行", Toast.LENGTH_SHORT).show()
+                        } else {
+                            // 没授权就主动请求
+                            ShizukuDelegate.requestPermission()
+                            statusText.text = "正在请求授权..."
+                        }
+                        updateStatus()
                     }
-                    updateStatus()
-                } catch (e: Exception) {
-                    Toast.makeText(this, "检测异常: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
+                }.start()
+            }
+
             }
 
             quickList.setOnItemClickListener { _, _, pos, _ ->
