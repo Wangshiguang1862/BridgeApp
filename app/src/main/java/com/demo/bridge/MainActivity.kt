@@ -103,24 +103,16 @@ class MainActivity : AppCompatActivity() {
 
             testBtn.setOnClickListener {
                 try {
-                    val alive = ShizukuDelegate.isBinderAlive()
-                    if (!alive) {
-                        statusText.text = "Shizuku 服务未运行（binder 不通）"
-                        Toast.makeText(this, "请先启动 Shizuku 服务", Toast.LENGTH_LONG).show()
-                        return@setOnClickListener
-                    }
                     if (ShizukuDelegate.isAuthorized()) {
                         statusText.text = "Shizuku 已授权 ✅"
                         Toast.makeText(this, "已授权 ✅", Toast.LENGTH_SHORT).show()
                     } else {
-                        ShizukuDelegate.requestPermission()
-                        statusText.text = "服务在，未授权 → 已弹窗"
-                        Toast.makeText(this, "请在弹窗中允许", Toast.LENGTH_SHORT).show()
+                        ShizukuDelegate.requestPermissionIfNeeded()
+                        statusText.text = "已触发授权申请"
                     }
                     updateStatus()
                 } catch (e: Exception) {
-                    statusText.text = "检测异常: ${e::class.java.simpleName} ${e.message}"
-                    Toast.makeText(this, "检测异常: ${e.message}", Toast.LENGTH_LONG).show()
+                    statusText.text = "检测异常: ${e.message}"
                 }
             }
 
@@ -206,6 +198,23 @@ class MainActivity : AppCompatActivity() {
             statusText.text = "启动异常: ${e::class.java.simpleName}"
             Toast.makeText(this, "启动异常: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        try {
+            Shizuku.addRequestPermissionResultListener(permissionListener)
+        } catch (_: Exception) {}
+        // 跟 TinyKit 一样：启动时就主动申请
+        ShizukuDelegate.requestPermissionIfNeeded()
+        updateStatus()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        try {
+            Shizuku.removeRequestPermissionResultListener(permissionListener)
+        } catch (_: Exception) {}
     }
 
     private fun hasResult(): Boolean {
@@ -334,20 +343,5 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             statusText.text = "状态读取失败: ${e.message}"
         }
-    }
-
-    override fun onStart() {
-        super.onStart()
-        try {
-            Shizuku.addRequestPermissionResultListener(permissionListener)
-        } catch (_: Exception) {}
-        updateStatus()
-    }
-
-    override fun onStop() {
-        super.onStop()
-        try {
-            Shizuku.removeRequestPermissionResultListener(permissionListener)
-        } catch (_: Exception) {}
     }
 }
