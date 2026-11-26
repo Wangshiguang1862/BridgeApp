@@ -24,11 +24,12 @@ object ShizukuDelegate {
         }
     }
 
-    fun requestPermission() {
+    /** 启动时主动申请——跟 TinyKit 一样的逻辑 */
+    fun requestPermissionIfNeeded() {
         try {
-            if (Shizuku.pingBinder()) {
-                Shizuku.requestPermission(REQUEST_CODE)
-            }
+            if (!Shizuku.pingBinder()) return
+            if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) return
+            Shizuku.requestPermission(REQUEST_CODE)
         } catch (e: Exception) {
             // ignore
         }
