@@ -169,29 +169,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        shareBtn.setOnClickListener {
-            val text = resultText.text.toString()
-            if (!hasResult()) {
-                Toast.makeText(this, "没有可分享的内容", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            val file = writeReport(text)
-            if (file == null) {
-                Toast.makeText(this, "生成文件失败", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            try {
-                val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
-                val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    putExtra(Intent.EXTRA_SUBJECT, "BridgeApp 报告")
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                startActivity(Intent.createChooser(intent, "分享报告"))
-            } catch (e: Exception) {
-                Toast.makeText(this, "分享失败: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+                shareBtn.setOnClickListener {
+            Toast.makeText(this, "分享功能暂时关闭", Toast.LENGTH_SHORT).show()
         }
 
         scanBtn.setOnClickListener {
