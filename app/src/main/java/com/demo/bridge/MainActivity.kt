@@ -108,7 +108,11 @@ class MainActivity : AppCompatActivity() {
                         Toast.makeText(this, "已授权 ✅", Toast.LENGTH_SHORT).show()
                     } else {
                         ShizukuDelegate.requestPermissionIfNeeded()
-                        statusText.text = "已触发授权申请"
+                        statusText.text = if (ShizukuDelegate.isBinderAlive()) {
+                            "已触发授权申请"
+                        } else {
+                            "Shizuku 服务未运行"
+                        }
                     }
                     updateStatus()
                 } catch (e: Exception) {
@@ -193,6 +197,23 @@ class MainActivity : AppCompatActivity() {
                 runScan()
             }
 
+            // binder 到位后自动申请（跟 TinyKit 一致）
+            ShizukuDelegate.registerBinderListener(
+                onReceived = {
+                    ShizukuDelegate.requestPermissionIfNeeded()
+                    runOnUiThread { updateStatus() }
+                },
+                onDead = {
+                    runOnUiThread {
+                        statusText.text = "Shizuku 服务已断开"
+                        execBtn.isEnabled = false
+                        scanBtn.isEnabled = false
+                        quickList.isEnabled = false
+                        addCmdBtn.isEnabled = false
+                    }
+                }
+            )
+
             updateStatus()
         } catch (e: Exception) {
             statusText.text = "启动异常: ${e::class.java.simpleName}"
@@ -205,7 +226,6 @@ class MainActivity : AppCompatActivity() {
         try {
             Shizuku.addRequestPermissionResultListener(permissionListener)
         } catch (_: Exception) {}
-        // 跟 TinyKit 一样：启动时就主动申请
         ShizukuDelegate.requestPermissionIfNeeded()
         updateStatus()
     }
