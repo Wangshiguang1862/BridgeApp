@@ -7,13 +7,16 @@ object ShizukuDelegate {
 
     const val REQUEST_CODE = 43981
 
+    fun isBinderAlive(): Boolean {
+        return try {
+            Shizuku.pingBinder()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     fun isAuthorized(): Boolean {
         return try {
-            var waited = 0
-            while (!Shizuku.pingBinder() && waited < 3000) {
-                Thread.sleep(100)
-                waited += 100
-            }
             if (!Shizuku.pingBinder()) return false
             Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
         } catch (e: Exception) {
@@ -33,7 +36,6 @@ object ShizukuDelegate {
 
     fun exec(cmd: String): String {
         return try {
-            if (!isAuthorized()) return "Shizuku 未授权"
             val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", cmd))
             val output = process.inputStream.bufferedReader().use { it.readText() }
             val error = process.errorStream.bufferedReader().use { it.readText() }
