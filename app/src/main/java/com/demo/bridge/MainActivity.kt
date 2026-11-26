@@ -4,10 +4,8 @@ import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Bundle
 import android.os.Build
+import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -36,7 +34,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var resultText: TextView
     private lateinit var quickList: ListView
 
-    private val shizukuPermissionRequestCode = 10086
     private val prefsName = "bridge_prefs"
     private val keyCmds = "quick_cmds"
 
@@ -67,9 +64,10 @@ class MainActivity : AppCompatActivity() {
     private var quickCmds = mutableListOf<String>()
     private lateinit var adapter: ArrayAdapter<String>
 
-    private val permissionListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
+    private val permissionListener = Shizuku.OnRequestPermissionResultListener { reqCode, grantResult ->
+        if (reqCode != ShizukuDelegate.REQUEST_CODE) return@OnRequestPermissionResultListener
         try {
-            if (grantResult == PackageManager.PERMISSION_GRANTED) {
+            if (grantResult == android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 statusText.text = "Shizuku 已授权 ✅"
                 Toast.makeText(this, "授权成功", Toast.LENGTH_SHORT).show()
             } else {
@@ -108,20 +106,21 @@ class MainActivity : AppCompatActivity() {
                 Thread {
                     val ok = ShizukuDelegate.isAuthorized()
                     runOnUiThread {
-                        if (ok) {
-                            statusText.text = "Shizuku 已授权 ✅"
-                            Toast.makeText(this, "已授权 ✅", Toast.LENGTH_SHORT).show()
-                        } else {
-                            // 没授权就主动请求
-                            ShizukuDelegate.requestPermission()
-                            statusText.text = "正在请求授权..."
+                        try {
+                            if (ok) {
+                                statusText.text = "Shizuku 已授权 ✅"
+                                Toast.makeText(this, "已授权 ✅", Toast.LENGTH_SHORT).show()
+                            } else {
+                                ShizukuDelegate.requestPermission()
+                                statusText.text = "正在请求授权..."
+                            }
+                            updateStatus()
+                        } catch (e: Exception) {
+                            Toast.makeText(this, "检测异常: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
-                        updateStatus()
                     }
                 }.start()
             }
-
-         }
 
             quickList.setOnItemClickListener { _, _, pos, _ ->
                 try {
@@ -272,7 +271,11 @@ class MainActivity : AppCompatActivity() {
         Thread {
             val res = ShizukuDelegate.exec(cmd)
             runOnUiThread {
-                resultText.text = "▶ $cmd\n\n${res.ifEmpty { "(无输出)" }}"
+                try {
+                    resultText.text = "▶ $cmd\n\n${res.ifEmpty { "(无输出)" }}"
+                } catch (e: Exception) {
+                    Toast.makeText(this, "显示结果失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
                 execBtn.isEnabled = true
                 scanBtn.isEnabled = true
             }
@@ -296,10 +299,14 @@ class MainActivity : AppCompatActivity() {
             }
             sb.appendLine("==== 扫描完毕 ====")
             runOnUiThread {
-                resultText.text = sb.toString()
-                scanBtn.isEnabled = true
-                execBtn.isEnabled = true
-                Toast.makeText(this, "扫描完成，可点击保存", Toast.LENGTH_SHORT).show()
+                try {
+                    resultText.text = sb.toString()
+                    scanBtn.isEnabled = true
+                    execBtn.isEnabled = true
+                    Toast.makeText(this, "扫描完成，可点击保存", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(this, "显示失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }.start()
     }
