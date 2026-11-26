@@ -69,15 +69,13 @@ class MainActivity : AppCompatActivity() {
         if (reqCode != ShizukuDelegate.REQUEST_CODE) return@OnRequestPermissionResultListener
         try {
             if (grantResult == PackageManager.PERMISSION_GRANTED) {
-                statusText.text = "Shizuku 已授权 ✅"
-                Toast.makeText(this, "授权成功", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "授权成功 ✅", Toast.LENGTH_SHORT).show()
             } else {
-                statusText.text = "Shizuku 授权被拒绝"
                 Toast.makeText(this, "授权被拒", Toast.LENGTH_SHORT).show()
             }
             updateStatus()
         } catch (e: Exception) {
-            statusText.text = "授权回调异常: ${e.message}"
+            statusText.text = "回调异常: ${e.message}"
         }
     }
 
@@ -105,16 +103,24 @@ class MainActivity : AppCompatActivity() {
 
             testBtn.setOnClickListener {
                 try {
+                    val alive = ShizukuDelegate.isBinderAlive()
+                    if (!alive) {
+                        statusText.text = "Shizuku 服务未运行（binder 不通）"
+                        Toast.makeText(this, "请先启动 Shizuku 服务", Toast.LENGTH_LONG).show()
+                        return@setOnClickListener
+                    }
                     if (ShizukuDelegate.isAuthorized()) {
                         statusText.text = "Shizuku 已授权 ✅"
                         Toast.makeText(this, "已授权 ✅", Toast.LENGTH_SHORT).show()
                     } else {
                         ShizukuDelegate.requestPermission()
-                        statusText.text = "正在请求授权..."
+                        statusText.text = "服务在，未授权 → 已弹窗"
+                        Toast.makeText(this, "请在弹窗中允许", Toast.LENGTH_SHORT).show()
                     }
                     updateStatus()
                 } catch (e: Exception) {
-                    Toast.makeText(this, "检测异常: ${e.message}", Toast.LENGTH_SHORT).show()
+                    statusText.text = "检测异常: ${e::class.java.simpleName} ${e.message}"
+                    Toast.makeText(this, "检测异常: ${e.message}", Toast.LENGTH_LONG).show()
                 }
             }
 
@@ -197,7 +203,8 @@ class MainActivity : AppCompatActivity() {
 
             updateStatus()
         } catch (e: Exception) {
-            Toast.makeText(this, "启动异常: ${e::class.java.simpleName} ${e.message}", Toast.LENGTH_LONG).show()
+            statusText.text = "启动异常: ${e::class.java.simpleName}"
+            Toast.makeText(this, "启动异常: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -309,8 +316,17 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateStatus() {
         try {
+            val alive = ShizukuDelegate.isBinderAlive()
+            if (!alive) {
+                statusText.text = "Shizuku 服务未运行"
+                execBtn.isEnabled = false
+                scanBtn.isEnabled = false
+                quickList.isEnabled = false
+                addCmdBtn.isEnabled = false
+                return
+            }
             val ok = ShizukuDelegate.isAuthorized()
-            statusText.text = if (ok) "Shizuku 已授权 ✅" else "Shizuku 未授权/未连接"
+            statusText.text = if (ok) "Shizuku 已授权 ✅" else "服务已连，未授权"
             execBtn.isEnabled = ok
             scanBtn.isEnabled = ok
             quickList.isEnabled = ok
