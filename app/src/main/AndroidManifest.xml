@@ -7,11 +7,12 @@
     </queries>
 
     <application
+        android:name=".BridgeApp"
         android:allowBackup="true"
         android:label="BridgeApp"
         android:icon="@android:drawable/ic_menu_preferences"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+        android:theme="@android:style/Theme.Holo.NoActionBar">
 
         <activity
             android:name=".MainActivity"
