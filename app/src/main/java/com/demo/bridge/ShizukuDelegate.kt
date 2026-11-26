@@ -5,18 +5,16 @@ import rikka.shizuku.Shizuku
 
 object ShizukuDelegate {
 
-    private const val REQUEST_CODE = 43981
+    const val REQUEST_CODE = 43981
 
     fun isAuthorized(): Boolean {
         return try {
-            // 先等 binder 就绪，最多等 3 秒
             var waited = 0
             while (!Shizuku.pingBinder() && waited < 3000) {
                 Thread.sleep(100)
                 waited += 100
             }
             if (!Shizuku.pingBinder()) return false
-
             Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED
         } catch (e: Exception) {
             false
@@ -36,12 +34,10 @@ object ShizukuDelegate {
     fun exec(cmd: String): String {
         return try {
             if (!isAuthorized()) return "Shizuku 未授权"
-
             val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", cmd))
             val output = process.inputStream.bufferedReader().use { it.readText() }
             val error = process.errorStream.bufferedReader().use { it.readText() }
             process.waitFor()
-
             if (output.isNotEmpty()) output else error
         } catch (e: Exception) {
             "执行失败: ${e.message}"
