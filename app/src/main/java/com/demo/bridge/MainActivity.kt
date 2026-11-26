@@ -68,117 +68,138 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: ArrayAdapter<String>
 
     private val permissionListener = Shizuku.OnRequestPermissionResultListener { _, grantResult ->
-        if (grantResult == PackageManager.PERMISSION_GRANTED) {
-            statusText.text = "Shizuku 已授权 ✅"
-            Toast.makeText(this, "授权成功", Toast.LENGTH_SHORT).show()
-        } else {
-            statusText.text = "Shizuku 授权被拒绝"
-            Toast.makeText(this, "授权被拒", Toast.LENGTH_SHORT).show()
+        try {
+            if (grantResult == PackageManager.PERMISSION_GRANTED) {
+                statusText.text = "Shizuku 已授权 ✅"
+                Toast.makeText(this, "授权成功", Toast.LENGTH_SHORT).show()
+            } else {
+                statusText.text = "Shizuku 授权被拒绝"
+                Toast.makeText(this, "授权被拒", Toast.LENGTH_SHORT).show()
+            }
+            updateStatus()
+        } catch (e: Exception) {
+            statusText.text = "授权回调异常: ${e.message}"
         }
-        updateStatus()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        try {
+            setContentView(R.layout.activity_main)
 
-        statusText = findViewById(R.id.status_text)
-        testBtn = findViewById(R.id.test_btn)
-        scanBtn = findViewById(R.id.scan_btn)
-        execBtn = findViewById(R.id.exec_btn)
-        clearBtn = findViewById(R.id.clear_btn)
-        copyBtn = findViewById(R.id.copy_btn)
-        saveBtn = findViewById(R.id.save_btn)
-        shareBtn = findViewById(R.id.share_btn)
-        addCmdBtn = findViewById(R.id.add_cmd_btn)
-        cmdInput = findViewById(R.id.cmd_input)
-        resultText = findViewById(R.id.result_text)
-        quickList = findViewById(R.id.quick_list)
+            statusText = findViewById(R.id.status_text)
+            testBtn = findViewById(R.id.test_btn)
+            scanBtn = findViewById(R.id.scan_btn)
+            execBtn = findViewById(R.id.exec_btn)
+            clearBtn = findViewById(R.id.clear_btn)
+            copyBtn = findViewById(R.id.copy_btn)
+            saveBtn = findViewById(R.id.save_btn)
+            shareBtn = findViewById(R.id.share_btn)
+            addCmdBtn = findViewById(R.id.add_cmd_btn)
+            cmdInput = findViewById(R.id.cmd_input)
+            resultText = findViewById(R.id.result_text)
+            quickList = findViewById(R.id.quick_list)
 
-        loadCmds()
-        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, quickCmds)
-        quickList.adapter = adapter
-        updateStatus()
+            loadCmds()
+            adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, quickCmds)
+            quickList.adapter = adapter
 
-        testBtn.setOnClickListener {
-            when {
-                ShizukuDelegate.isAuthorized() ->
-                    Toast.makeText(this, "已授权 ✅", Toast.LENGTH_SHORT).show()
-                Shizuku.pingBinder() ->
-                    Shizuku.requestPermission(shizukuPermissionRequestCode)
-                else ->
-                    Toast.makeText(this, "Shizuku 未运行", Toast.LENGTH_SHORT).show()
-            }
-            updateStatus()
-        }
-
-        quickList.setOnItemClickListener { _, _, pos, _ ->
-            val item = quickCmds[pos]
-            val cmd = item.substringAfter("|", item)
-            cmdInput.setText(cmd)
-            runCmd(cmd)
-        }
-
-        quickList.setOnItemLongClickListener { _, _, pos, _ ->
-            AlertDialog.Builder(this)
-                .setTitle("删除命令？")
-                .setMessage(quickCmds[pos].substringBefore("|"))
-                .setPositiveButton("删除") { _, _ ->
-                    quickCmds.removeAt(pos)
-                    saveCmds()
-                    adapter.notifyDataSetChanged()
-                    Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show()
+            testBtn.setOnClickListener {
+                try {
+                    when {
+                        ShizukuDelegate.isAuthorized() ->
+                            Toast.makeText(this, "已授权 ✅", Toast.LENGTH_SHORT).show()
+                        Shizuku.pingBinder() ->
+                            Shizuku.requestPermission(shizukuPermissionRequestCode)
+                        else ->
+                            Toast.makeText(this, "Shizuku 未运行", Toast.LENGTH_SHORT).show()
+                    }
+                    updateStatus()
+                } catch (e: Exception) {
+                    Toast.makeText(this, "检测异常: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
-                .setNegativeButton("取消", null)
-                .show()
-            true
-        }
-
-        addCmdBtn.setOnClickListener { showAddDialog() }
-
-        execBtn.setOnClickListener {
-            val cmd = cmdInput.text.toString().trim()
-            if (cmd.isEmpty()) {
-                Toast.makeText(this, "请输入命令", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
             }
-            runCmd(cmd)
-        }
 
-        clearBtn.setOnClickListener { resultText.text = "" }
-
-        copyBtn.setOnClickListener {
-            val text = resultText.text.toString()
-            if (!hasResult()) {
-                Toast.makeText(this, "没有可复制的内容", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+            quickList.setOnItemClickListener { _, _, pos, _ ->
+                try {
+                    val item = quickCmds[pos]
+                    val cmd = item.substringAfter("|", item)
+                    cmdInput.setText(cmd)
+                    runCmd(cmd)
+                } catch (e: Exception) {
+                    Toast.makeText(this, "执行异常: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
-            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            cm.setPrimaryClip(ClipData.newPlainText("BridgeApp结果", text))
-            Toast.makeText(this, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
-        }
 
-        saveBtn.setOnClickListener {
-            val text = resultText.text.toString()
-            if (!hasResult()) {
-                Toast.makeText(this, "没有可保存的内容", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+            quickList.setOnItemLongClickListener { _, _, pos, _ ->
+                try {
+                    AlertDialog.Builder(this)
+                        .setTitle("删除命令？")
+                        .setMessage(quickCmds[pos].substringBefore("|"))
+                        .setPositiveButton("删除") { _, _ ->
+                            quickCmds.removeAt(pos)
+                            saveCmds()
+                            adapter.notifyDataSetChanged()
+                            Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show()
+                        }
+                        .setNegativeButton("取消", null)
+                        .show()
+                } catch (e: Exception) {
+                    Toast.makeText(this, "删除异常: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+                true
             }
-            writeReport(text)?.let { file ->
-                Toast.makeText(this, "已保存:\n${file.absolutePath}", Toast.LENGTH_LONG).show()
-            }
-        }
 
-                shareBtn.setOnClickListener {
-            Toast.makeText(this, "分享功能暂时关闭", Toast.LENGTH_SHORT).show()
-        }
+            addCmdBtn.setOnClickListener { showAddDialog() }
 
-        scanBtn.setOnClickListener {
-            if (!ShizukuDelegate.isAuthorized()) {
-                Toast.makeText(this, "请先授权 Shizuku", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+            execBtn.setOnClickListener {
+                val cmd = cmdInput.text.toString().trim()
+                if (cmd.isEmpty()) {
+                    Toast.makeText(this, "请输入命令", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                runCmd(cmd)
             }
-            runScan()
+
+            clearBtn.setOnClickListener { resultText.text = "" }
+
+            copyBtn.setOnClickListener {
+                val text = resultText.text.toString()
+                if (!hasResult()) {
+                    Toast.makeText(this, "没有可复制的内容", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                cm.setPrimaryClip(ClipData.newPlainText("BridgeApp结果", text))
+                Toast.makeText(this, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
+            }
+
+            saveBtn.setOnClickListener {
+                val text = resultText.text.toString()
+                if (!hasResult()) {
+                    Toast.makeText(this, "没有可保存的内容", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                writeReport(text)?.let { file ->
+                    Toast.makeText(this, "已保存:\n${file.absolutePath}", Toast.LENGTH_LONG).show()
+                }
+            }
+
+            shareBtn.setOnClickListener {
+                Toast.makeText(this, "分享功能暂时关闭", Toast.LENGTH_SHORT).show()
+            }
+
+            scanBtn.setOnClickListener {
+                if (!ShizukuDelegate.isAuthorized()) {
+                    Toast.makeText(this, "请先授权 Shizuku", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                runScan()
+            }
+
+            updateStatus()
+        } catch (e: Exception) {
+            Toast.makeText(this, "启动异常: ${e::class.java.simpleName} ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -281,22 +302,30 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateStatus() {
-        val ok = ShizukuDelegate.isAuthorized()
-        statusText.text = if (ok) "Shizuku 已授权 ✅" else "Shizuku 未授权/未连接"
-        execBtn.isEnabled = ok
-        scanBtn.isEnabled = ok
-        quickList.isEnabled = ok
-        addCmdBtn.isEnabled = ok
+        try {
+            val ok = ShizukuDelegate.isAuthorized()
+            statusText.text = if (ok) "Shizuku 已授权 ✅" else "Shizuku 未授权/未连接"
+            execBtn.isEnabled = ok
+            scanBtn.isEnabled = ok
+            quickList.isEnabled = ok
+            addCmdBtn.isEnabled = ok
+        } catch (e: Exception) {
+            statusText.text = "Shizuku 状态读取失败: ${e.message}"
+        }
     }
 
     override fun onStart() {
         super.onStart()
-        Shizuku.addRequestPermissionResultListener(permissionListener)
+        try {
+            Shizuku.addRequestPermissionResultListener(permissionListener)
+        } catch (_: Exception) {}
         updateStatus()
     }
 
     override fun onStop() {
         super.onStop()
-        Shizuku.removeRequestPermissionResultListener(permissionListener)
+        try {
+            Shizuku.removeRequestPermissionResultListener(permissionListener)
+        } catch (_: Exception) {}
     }
 }
