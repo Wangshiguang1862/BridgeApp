@@ -121,7 +121,7 @@ class MainActivity : AppCompatActivity() {
                 }.start()
             }
 
-            }
+         }
 
             quickList.setOnItemClickListener { _, _, pos, _ ->
                 try {
