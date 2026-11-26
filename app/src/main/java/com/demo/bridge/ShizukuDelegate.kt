@@ -24,7 +24,20 @@ object ShizukuDelegate {
         }
     }
 
-    /** 启动时主动申请——跟 TinyKit 一样的逻辑 */
+    /** 注册 binder 生命周期监听。sticky 版会在 binder 已就绪时立刻回调一次 */
+    fun registerBinderListener(onReceived: () -> Unit, onDead: () -> Unit) {
+        try {
+            Shizuku.addBinderReceivedListenerSticky(Shizuku.OnBinderReceivedListener {
+                onReceived()
+            })
+            Shizuku.addBinderDeadListener(Shizuku.OnBinderDeadListener {
+                onDead()
+            })
+        } catch (e: Exception) {
+            // ignore
+        }
+    }
+
     fun requestPermissionIfNeeded() {
         try {
             if (!Shizuku.pingBinder()) return
