@@ -15,7 +15,6 @@ import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
 import rikka.shizuku.Shizuku
 import java.io.File
 import java.text.SimpleDateFormat
