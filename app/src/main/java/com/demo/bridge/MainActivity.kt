@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.ArrayAdapter
@@ -67,7 +68,7 @@ class MainActivity : AppCompatActivity() {
     private val permissionListener = Shizuku.OnRequestPermissionResultListener { reqCode, grantResult ->
         if (reqCode != ShizukuDelegate.REQUEST_CODE) return@OnRequestPermissionResultListener
         try {
-            if (grantResult == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            if (grantResult == PackageManager.PERMISSION_GRANTED) {
                 statusText.text = "Shizuku 已授权 ✅"
                 Toast.makeText(this, "授权成功", Toast.LENGTH_SHORT).show()
             } else {
@@ -103,23 +104,18 @@ class MainActivity : AppCompatActivity() {
             quickList.adapter = adapter
 
             testBtn.setOnClickListener {
-                Thread {
-                    val ok = ShizukuDelegate.isAuthorized()
-                    runOnUiThread {
-                        try {
-                            if (ok) {
-                                statusText.text = "Shizuku 已授权 ✅"
-                                Toast.makeText(this, "已授权 ✅", Toast.LENGTH_SHORT).show()
-                            } else {
-                                ShizukuDelegate.requestPermission()
-                                statusText.text = "正在请求授权..."
-                            }
-                            updateStatus()
-                        } catch (e: Exception) {
-                            Toast.makeText(this, "检测异常: ${e.message}", Toast.LENGTH_SHORT).show()
-                        }
+                try {
+                    if (ShizukuDelegate.isAuthorized()) {
+                        statusText.text = "Shizuku 已授权 ✅"
+                        Toast.makeText(this, "已授权 ✅", Toast.LENGTH_SHORT).show()
+                    } else {
+                        ShizukuDelegate.requestPermission()
+                        statusText.text = "正在请求授权..."
                     }
-                }.start()
+                    updateStatus()
+                } catch (e: Exception) {
+                    Toast.makeText(this, "检测异常: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
 
             quickList.setOnItemClickListener { _, _, pos, _ ->
@@ -301,12 +297,12 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 try {
                     resultText.text = sb.toString()
-                    scanBtn.isEnabled = true
-                    execBtn.isEnabled = true
                     Toast.makeText(this, "扫描完成，可点击保存", Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
                     Toast.makeText(this, "显示失败: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
+                scanBtn.isEnabled = true
+                execBtn.isEnabled = true
             }
         }.start()
     }
@@ -320,7 +316,7 @@ class MainActivity : AppCompatActivity() {
             quickList.isEnabled = ok
             addCmdBtn.isEnabled = ok
         } catch (e: Exception) {
-            statusText.text = "Shizuku 状态读取失败: ${e.message}"
+            statusText.text = "状态读取失败: ${e.message}"
         }
     }
 
